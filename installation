@@ -1,0 +1,122 @@
+# Argo Rollouts Installation & Blue-Green Deployment Guide
+
+## Step 1: Install Argo Rollouts Controller
+
+1. **Create the Namespace:**
+   ```sh
+   kubectl create namespace argo-rollouts
+   ```
+
+2. **Verify Namespace Creation:**
+   ```sh
+   kubectl get ns argo-rollouts
+   ```
+
+3. **Install Argo Rollouts Controller:**
+   ```sh
+   kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+   ```
+
+4. **Check Controller Components:**
+   ```sh
+   kubectl get all -n argo-rollouts
+   ```
+
+5. **Install Argo Rollouts Kubectl Plugin:**
+   ```sh
+   curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+   chmod +x ./kubectl-argo-rollouts-linux-amd64
+   sudo mv ./kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+   kubectl argo rollouts version
+   ```
+
+6. **Access the Argo Rollouts Dashboard:**
+   ```sh
+   kubectl argo rollouts dashboard
+   ```
+   - Access the dashboard at: [http://localhost:3100](http://localhost:3100) or `http://<public_IP>:31000`
+
+---
+
+## Step 2: Deploy Blue-Green Rollout Resources
+
+1. **Apply Service Configuration:**
+   ```sh
+   kubectl apply -f service.yaml
+   ```
+
+2. **Apply Rollout Configuration:**
+   ```sh
+   kubectl apply -f rollout.yaml
+   ```
+
+3. **Apply Ingress Configuration (if needed):**
+   ```sh
+   kubectl apply -f ingress.yaml
+   ```
+
+4. **Verify Deployments:**
+   ```sh
+   kubectl get pods
+   kubectl get services
+   kubectl get all
+   ```
+
+5. **Check Rollout Status:**
+   ```sh
+   kubectl argo rollouts get rollout rollout-bluegreen
+   ```
+
+6. **Expose Blue-Green Service for Browser Access:**
+   ```sh
+   kubectl port-forward svc/rollout-bluegreen-active --address 0.0.0.0 8081:80
+   ```
+   - Access the application at: [http://localhost:8081](http://localhost:8081)
+
+---
+
+## Step 3: Update and Promote the Green Version
+
+1. **Update the Rollout to the Green Version:**
+   ```sh
+   kubectl argo rollouts set image rollout-bluegreen rollouts-demo=argoproj/rollouts-demo:green
+   ```
+
+2. **Verify Pod Status:**
+   ```sh
+   kubectl get pods
+   ```
+
+   Example output:
+   ```
+   NAME                                 READY   STATUS    RESTARTS   AGE
+   my-app-766c8d6974-kk245              1/1     Running   0          57m
+   rollout-bluegreen-5ffd47b8d4-bh6bv   1/1     Running   0          6m2s
+   rollout-bluegreen-5ffd47b8d4-gnszs   1/1     Running   0          6m2s
+   rollout-bluegreen-75695867f-bqsgr    1/1     Running   0          30s
+   rollout-bluegreen-75695867f-dbj45    1/1     Running   0          30s
+   ```
+
+3. **Monitor the Rollout:**
+   ```sh
+   kubectl argo rollouts get rollout rollout-bluegreen
+   ```
+
+4. **Promote the Green Version:**
+   ```sh
+   kubectl argo rollouts promote rollout-bluegreen
+   ```
+
+5. **Verify Promotion and Access the Updated Application:**
+   ```sh
+   kubectl argo rollouts get rollout rollout-bluegreen
+   kubectl port-forward svc/rollout-bluegreen-active --address 0.0.0.0 8081:80
+   ```
+
+---
+
+## Notes
+
+- For more details, refer to the [official documentation](https://argoproj.github.io/argo-rollouts/).
+- Ensure your `kubectl` context is set to the correct cluster.
+- All commands assume you are operating in the default namespace unless specified otherwise.
